@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -14,22 +17,444 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Create Android project
+        run: |
+          mkdir -p app/src/main/java/com/nazirbahrami/digitaltv
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/assets
+
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          rootProject.name = "Nazir-Bahrami-Digital-TV"
+          include(":app")
+          EOF
+
+          cat > build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '8.7.3' apply false
+          }
+          EOF
+
+          cat > app/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.nazirbahrami.digitaltv'
+              compileSdk 35
+
+              defaultConfig {
+                  applicationId 'com.nazirbahrami.digitaltv'
+                  minSdk 23
+                  targetSdk 35
+                  versionCode 1
+                  versionName '1.0'
+              }
+          }
+          EOF
+
+          cat > app/src/main/res/values/strings.xml <<'EOF'
+          <resources>
+              <string name="app_name">Nazir Bahrami Digital TV</string>
+          </resources>
+          EOF
+
+          cat > app/src/main/res/values/styles.xml <<'EOF'
+          <resources>
+              <style name="AppTheme"
+                  parent="android:style/Theme.Material.Light.NoActionBar">
+                  <item name="android:windowFullscreen">true</item>
+                  <item name="android:fontFamily">sans</item>
+              </style>
+          </resources>
+          EOF
+
+          cat > app/src/main/res/layout/activity_main.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <WebView xmlns:android="http://schemas.android.com/apk/res/android"
+              android:id="@+id/web"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent" />
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+              <uses-permission android:name="android.permission.INTERNET"/>
+
+              <application
+                  android:theme="@style/AppTheme"
+                  android:label="@string/app_name"
+                  android:usesCleartextTraffic="true">
+
+                  <activity
+                      android:name=".MainActivity"
+                      android:screenOrientation="landscape"
+                      android:exported="true">
+
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat > app/src/main/java/com/nazirbahrami/digitaltv/MainActivity.java <<'EOF'
+          package com.nazirbahrami.digitaltv;
+
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+
+          public class MainActivity extends Activity {
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+
+                  WebView web = new WebView(this);
+
+                  web.setWebViewClient(new WebViewClient());
+
+                  WebSettings settings = web.getSettings();
+                  settings.setJavaScriptEnabled(true);
+                  settings.setDomStorageEnabled(true);
+                  settings.setMediaPlaybackRequiresUserGesture(false);
+
+                  web.loadUrl("file:///android_asset/index.html");
+
+                  setContentView(web);
+              }
+          }
+          EOF
+
+          cat > app/src/main/assets/index.html <<'EOF'
+          <!DOCTYPE html>
+          <html lang="fa" dir="rtl">
+
+          <head>
+          <meta charset="UTF-8">
+
+          <meta name="viewport"
+                content="width=device-width,
+                initial-scale=1.0">
+
+          <title>Nazir Bahrami Digital TV</title>
+
+          <style>
+
+          * {
+              box-sizing: border-box;
+          }
+
+          body {
+              margin: 0;
+              background:
+              linear-gradient(135deg,#020617,#0f172a,#082f49);
+              color: white;
+              font-family: Arial;
+          }
+
+          header {
+              padding: 18px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              background: rgba(0,0,0,.45);
+              border-bottom: 1px solid #164e63;
+          }
+
+          .logo {
+              font-size: 21px;
+              font-weight: bold;
+          }
+
+          .since {
+              color: #67e8f9;
+              font-size: 11px;
+              margin-top: 4px;
+          }
+
+          .live {
+              background: #dc2626;
+              padding: 7px 13px;
+              border-radius: 20px;
+              font-weight: bold;
+          }
+
+          main {
+              padding: 15px;
+          }
+
+          .player {
+              width: 100%;
+              max-width: 1000px;
+              margin: auto;
+              background: black;
+              border-radius: 18px;
+              overflow: hidden;
+              box-shadow: 0 0 35px rgba(0,0,0,.7);
+          }
+
+          video {
+              width: 100%;
+              display: block;
+              aspect-ratio: 16/9;
+              background: black;
+          }
+
+          .control {
+              display: flex;
+              gap: 8px;
+              margin-top: 14px;
+          }
+
+          input {
+              flex: 1;
+              padding: 13px;
+              border-radius: 10px;
+              border: 1px solid #164e63;
+              background: #0f172a;
+              color: white;
+          }
+
+          button {
+              border: 0;
+              border-radius: 10px;
+              padding: 12px 16px;
+              background: #0891b2;
+              color: white;
+              font-weight: bold;
+          }
+
+          .title {
+              margin-top: 20px;
+              font-size: 18px;
+              font-weight: bold;
+          }
+
+          .channels {
+              display: grid;
+              grid-template-columns:
+              repeat(auto-fit,minmax(130px,1fr));
+
+              gap: 10px;
+              margin-top: 12px;
+          }
+
+          .channel {
+              background: rgba(15,23,42,.9);
+              border: 1px solid #164e63;
+              padding: 18px 10px;
+              text-align: center;
+              border-radius: 14px;
+          }
+
+          .channel:active {
+              transform: scale(.97);
+          }
+
+          .icon {
+              font-size: 28px;
+          }
+
+          .name {
+              margin-top: 7px;
+              font-weight: bold;
+          }
+
+          .footer {
+              text-align: center;
+              color: #94a3b8;
+              font-size: 11px;
+              padding: 25px;
+          }
+
+          </style>
+          </head>
+
+          <body>
+
+          <header>
+
+              <div>
+                  <div class="logo">
+                      📺 Nazir Bahrami Digital TV
+                  </div>
+
+                  <div class="since">
+                      Nazir Group Of Companies • Since 2024
+                  </div>
+              </div>
+
+              <div class="live">
+                  ● LIVE
+              </div>
+
+          </header>
+
+          <main>
+
+              <div class="player">
+
+                  <video
+                      id="player"
+                      controls
+                      playsinline>
+                  </video>
+
+              </div>
+
+              <div class="control">
+
+                  <input
+                      id="url"
+                      type="url"
+                      placeholder="لینک شبکه را وارد کنید">
+
+                  <button onclick="playChannel()">
+                      ▶ پخش
+                  </button>
+
+              </div>
+
+              <div class="title">
+                  📡 شبکه‌های تلویزیونی
+              </div>
+
+              <div class="channels">
+
+                  <button
+                      class="channel"
+                      onclick="openChannel('')">
+
+                      <div class="icon">📺</div>
+                      <div class="name">شبکه ۱</div>
+
+                  </button>
+
+                  <button
+                      class="channel"
+                      onclick="openChannel('')">
+
+                      <div class="icon">📺</div>
+                      <div class="name">شبکه ۲</div>
+
+                  </button>
+
+                  <button
+                      class="channel"
+                      onclick="openChannel('')">
+
+                      <div class="icon">📺</div>
+                      <div class="name">شبکه ۳</div>
+
+                  </button>
+
+                  <button
+                      class="channel"
+                      onclick="openChannel('')">
+
+                      <div class="icon">📰</div>
+                      <div class="name">اخبار</div>
+
+                  </button>
+
+                  <button
+                      class="channel"
+                      onclick="openChannel('')">
+
+                      <div class="icon">🎬</div>
+                      <div class="name">فیلم</div>
+
+                  </button>
+
+              </div>
+
+          </main>
+
+          <div class="footer">
+              Nazir Bahrami Digital TV
+          </div>
+
+          <script>
+
+          const player =
+              document.getElementById("player");
+
+          function playChannel() {
+
+              const url =
+                  document.getElementById("url").value.trim();
+
+              if (!url) {
+                  alert("لطفاً لینک شبکه را وارد کنید.");
+                  return;
+              }
+
+              player.src = url;
+
+              player.play().catch(() => {});
+          }
+
+          function openChannel(url) {
+
+              if (!url) {
+                  alert("لینک این شبکه هنوز اضافه نشده است.");
+                  return;
+              }
+
+              player.src = url;
+
+              player.play().catch(() => {});
+          }
+
+          </script>
+
+          </body>
+          </html>
+          EOF
 
       - name: Build APK
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug
+        run: gradle --no-daemon assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Nazir-Bahrami-Digital-TV
+          name: Nazir-Bahrami-Digital-TV-APK
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
